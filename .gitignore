@@ -1,2 +1,3 @@
 notify/check.log
 .DS_Store
+notify/launchd.err
