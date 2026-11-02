@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>시스템 최적화 퀘스트</title>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --surface2: #273449; --border: #334155;
+    --text: #f1f5f9; --muted: #94a3b8; --accent: #6366f1; --accent2: #8b5cf6;
+    --success: #10b981; --warning: #f59e0b; --danger: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, 'Apple SD Gothic Neo', 'Malgun Gothic', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+  code { background: rgba(0,0,0,.35); padding: 1px 5px; border-radius: 4px; font-family: 'SF Mono', Menlo, monospace; font-size: .9em; color: #93c5fd; }
+  b { color: #c7d2fe; }
+
+  .header { background: linear-gradient(135deg, #1e1b4b 0%, #312e81 55%, #1e293b 100%); padding: 18px 16px 0; border-bottom: 1px solid var(--border); }
+  .header-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 14px; }
+  .app-title { font-size: 20px; font-weight: 800; letter-spacing: -.4px; }
+  .app-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .dday { text-align: right; }
+  .dday .big { font-size: 22px; font-weight: 800; color: #fbbf24; }
+  .dday .small { font-size: 11px; color: var(--muted); }
+  .stats-row { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.12); border-radius: 20px; padding: 5px 12px; font-size: 12px; display: flex; gap: 5px; align-items: center; }
+  .chip .v { font-weight: 800; font-size: 14px; }
+  .chip .l { color: var(--muted); font-size: 11px; }
+  .xp-bar { height: 7px; background: rgba(255,255,255,.1); border-radius: 4px; overflow: hidden; margin-top: 12px; }
+  .xp-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); transition: width .5s; }
+  .xp-labels { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin: 4px 0 12px; }
+
+  .nav { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 50; }
+  .nav button { flex: 1; padding: 12px 4px; background: none; border: none; color: var(--muted); font-size: 13px; cursor: pointer; border-bottom: 2px solid transparent; font-family: inherit; }
+  .nav button.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
+  .badge { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--danger); color: #fff; font-size: 10px; font-weight: 800; margin-left: 3px; line-height: 16px; }
+
+  .page { display: none; padding: 18px 16px 60px; max-width: 680px; margin: 0 auto; }
+  .page.active { display: block; }
+  .muted { color: var(--muted); }
+  .section-title { font-size: 15px; font-weight: 700; margin: 18px 0 10px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .section-title .sub { font-size: 11px; font-weight: 400; color: var(--muted); }
+
+  .banner { border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; font-size: 13px; line-height: 1.6; }
+  .banner.warn { background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.4); color: #fde68a; }
+  .banner.ok { background: linear-gradient(135deg, rgba(16,185,129,.15), rgba(99,102,241,.15)); border: 1px solid rgba(16,185,129,.35); text-align: center; }
+  .banner.ok .icon { font-size: 36px; }
+  .banner.ok h3 { font-size: 17px; margin: 4px 0; }
+  .banner.info { background: rgba(99,102,241,.1); border: 1px solid rgba(99,102,241,.3); }
+
+  .day-chip { display: inline-flex; gap: 6px; align-items: center; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 700; background: rgba(99,102,241,.15); color: #a5b4fc; border: 1px solid rgba(99,102,241,.35); margin-bottom: 8px; }
+  .day-title { font-size: 18px; font-weight: 800; line-height: 1.4; margin-bottom: 4px; }
+
+  .concept { background: linear-gradient(135deg, rgba(99,102,241,.12), rgba(139,92,246,.07)); border: 1px solid rgba(99,102,241,.3); border-radius: 12px; padding: 14px; margin-top: 12px; }
+  .concept-toggle { display: flex; justify-content: space-between; align-items: center; cursor: pointer; font-size: 14px; font-weight: 700; color: #a5b4fc; }
+  .concept-body { margin-top: 10px; }
+  .concept.collapsed .concept-body { display: none; }
+  .core { background: rgba(0,0,0,.22); border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 10px; padding: 11px 12px; margin-bottom: 9px; }
+  .core-head { display: flex; gap: 8px; align-items: center; margin-bottom: 7px; font-weight: 700; font-size: 13.5px; }
+  .core-num { width: 22px; height: 22px; border-radius: 7px; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; }
+  .core ul { list-style: none; }
+  .core li { position: relative; padding-left: 15px; font-size: 12.8px; line-height: 1.65; margin-bottom: 4px; }
+  .core li::before { content: '▪'; position: absolute; left: 1px; color: var(--accent); }
+
+  .progress-line { display: flex; align-items: center; gap: 10px; margin: 8px 0 4px; font-size: 12px; color: var(--muted); }
+  .progress-line .bar { flex: 1; height: 8px; background: rgba(255,255,255,.08); border-radius: 4px; overflow: hidden; }
+  .progress-line .bar div { height: 100%; background: linear-gradient(90deg, var(--success), #34d399); transition: width .4s; }
+
+  .q { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 10px; }
+  .q.right { border-color: rgba(16,185,129,.45); background: rgba(16,185,129,.07); }
+  .q.wrong { border-color: rgba(239,68,68,.45); background: rgba(239,68,68,.06); }
+  .q-head { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .tag { font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 10px; background: rgba(99,102,241,.15); color: #a5b4fc; }
+  .tag.review { background: rgba(245,158,11,.15); color: #fcd34d; }
+  .tag.wrongtag { background: rgba(239,68,68,.15); color: #fca5a5; }
+  .q-text { font-size: 14px; font-weight: 600; line-height: 1.65; margin-bottom: 11px; white-space: pre-line; }
+  .opts { display: flex; flex-direction: column; gap: 7px; }
+  .opt { text-align: left; padding: 11px 13px; border-radius: 10px; border: 1px solid var(--border); background: var(--surface2); color: var(--text); font-size: 13px; font-family: inherit; line-height: 1.5; cursor: pointer; }
+  .opt:active { transform: scale(.99); }
+  .opt:disabled { cursor: default; }
+  .opt.correct { border-color: var(--success); background: rgba(16,185,129,.18); }
+  .opt.picked-wrong { border-color: var(--danger); background: rgba(239,68,68,.16); }
+  .ox { display: flex; gap: 10px; }
+  .ox .opt { flex: 1; text-align: center; font-size: 20px; font-weight: 800; padding: 12px; }
+  .short { display: flex; gap: 8px; }
+  .short input { flex: 1; padding: 11px 12px; border-radius: 10px; border: 1px solid var(--border); background: #0b1120; color: var(--text); font-size: 14px; font-family: inherit; }
+  .btn { padding: 10px 16px; border-radius: 10px; border: none; background: var(--accent); color: #fff; font-weight: 700; font-size: 13px; font-family: inherit; cursor: pointer; }
+  .btn.ghost { background: var(--surface2); border: 1px solid var(--border); color: var(--text); }
+  .btn.small { padding: 7px 12px; font-size: 12px; }
+  .result { margin-top: 10px; font-size: 13px; font-weight: 700; }
+  .result.r { color: var(--success); } .result.w { color: #fca5a5; }
+  .explain { margin-top: 7px; font-size: 12.5px; line-height: 1.65; color: #cbd5e1; background: rgba(0,0,0,.22); border-radius: 8px; padding: 10px 12px; }
+  .explain .src { display: block; margin-top: 5px; font-size: 11px; color: var(--muted); }
+
+  .sched-item { display: flex; gap: 12px; align-items: center; padding: 12px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; cursor: pointer; }
+  .sched-item.today { border-color: var(--accent); background: rgba(99,102,241,.1); }
+  .sched-date { width: 54px; text-align: center; flex-shrink: 0; }
+  .sched-date .d { font-size: 18px; font-weight: 800; }
+  .sched-date .w { font-size: 11px; color: var(--muted); }
+  .sched-body { flex: 1; min-width: 0; }
+  .sched-body .t { font-size: 13.5px; font-weight: 700; line-height: 1.4; }
+  .sched-body .s { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+  .sched-status { font-size: 18px; flex-shrink: 0; }
+
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; }
+  .stat-big { font-size: 30px; font-weight: 800; }
+  .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .row { display: flex; align-items: center; gap: 10px; margin-bottom: 9px; font-size: 12.5px; }
+  .row .lbl { width: 92px; color: var(--muted); flex-shrink: 0; }
+  .row .bar { flex: 1; height: 8px; background: rgba(255,255,255,.08); border-radius: 4px; overflow: hidden; }
+  .row .bar div { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+  .row .pct { width: 42px; text-align: right; font-weight: 700; }
+  .topic-box { font-family: 'SF Mono', Menlo, monospace; background: #0b1120; border: 1px dashed var(--border); border-radius: 8px; padding: 10px; font-size: 14px; color: #fbbf24; word-break: break-all; margin: 8px 0; text-align: center; }
+  ol.steps { padding-left: 20px; font-size: 12.8px; line-height: 1.8; }
+
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); z-index: 100; display: none; overflow-y: auto; }
+  .modal-bg.open { display: block; }
+  .modal { max-width: 680px; margin: 0 auto; background: var(--bg); min-height: 100vh; padding: 16px 16px 60px; }
+  .modal-close { position: sticky; top: 0; display: flex; justify-content: space-between; align-items: center; background: var(--bg); padding: 6px 0 10px; z-index: 2; }
+
+  .toast { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); background: #111827; border: 1px solid var(--border); color: var(--text); padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 200; opacity: 0; transition: opacity .25s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .xp-pop { position: fixed; font-weight: 800; color: #a5b4fc; z-index: 300; pointer-events: none; animation: up 1s ease forwards; }
+  @keyframes up { from { opacity: 1; transform: translateY(0); } to { opacity: 0; transform: translateY(-50px); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div>
+      <div class="app-title">⚙️ 시스템 최적화 퀘스트</div>
+      <div class="app-sub">인공지능시스템 최적화 · 박영준 교수 · 셀프 학습</div>
+    </div>
+    <div class="dday"><div class="big" id="ddayBig">D-?</div><div class="small" id="ddaySmall">11/16 시험</div></div>
+  </div>
+  <div class="stats-row">
+    <div class="chip">🔥 <span class="v" id="sStreak">0</span><span class="l">일 연속</span></div>
+    <div class="chip">⚡ <span class="v" id="sXP">0</span><span class="l">XP</span></div>
+    <div class="chip">🎯 <span class="v" id="sAcc">-</span><span class="l">정답률</span></div>
+    <div class="chip">📕 <span class="v" id="sWrong">0</span><span class="l">오답</span></div>
+  </div>
+  <div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
+  <div class="xp-labels"><span id="xpLv">Lv.1</span><span id="xpNext">다음 레벨까지 100 XP</span></div>
+</div>
+
+<div class="nav">
+  <button class="active" data-page="today">📅 오늘</button>
+  <button data-page="sched">🗓️ 일정</button>
+  <button data-page="wrong">📕 오답노트<span class="badge" id="wrongBadge" style="display:none">0</span></button>
+  <button data-page="stats">📊 진도</button>
+</div>
+
+<div id="page-today" class="page active"></div>
+<div id="page-sched" class="page"></div>
+<div id="page-wrong" class="page"></div>
+<div id="page-stats" class="page"></div>
+
+<div class="modal-bg" id="modal"><div class="modal">
+  <div class="modal-close"><b id="modalTitle" style="color:var(--text)"></b><button class="btn ghost small" onclick="closeModal()">닫기 ✕</button></div>
+  <div id="modalBody"></div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script src="data-1.js"></script>
+<script src="data-2.js"></script>
+<script>
+// ================= 설정 =================
+const EXAM_DATE = '2026-11-16';
+const NTFY = 'https://ntfy.sh';
+const TOPIC_STATUS = 'sysopt-7d0aedf5-status';   // 앱이 '오늘 완료'를 기록하는 곳
+const TOPIC_ALERT = 'sysopt-7d0aedf5-alert';     // 폰이 구독하는 알림 채널 (21시 미완료 시)
+const REVIEW_PER_DAY = 6;                        // 학습일마다 섞어 넣는 누적 복습 문제 수
+const XP_RIGHT = 10, XP_WRONG = 2, XP_DAY = 30, XP_PER_LEVEL = 150;
+const Q = {}; QUESTIONS.forEach(q => Q[q.id] = q);
+
+// ================= 상태 =================
+const KEY = 'sysopt-quest-v1';
+function load() { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } }
+let S = load();
+S.sets ??= {}; S.ans ??= {}; S.wrong ??= {}; S.done ??= {}; S.xp ??= 0; S.sent ??= {}; S.memo ??= {};
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+// ================= 날짜 =================
+const pad = n => String(n).padStart(2, '0');
+const fmt = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+function today() { return fmt(new Date()); }
+const WD = ['일', '월', '화', '수', '목', '금', '토'];
+function parse(s) { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); }
+function dayOf(date) { return DAYS.find(d => d.date === date) || null; }
+function daysBetween(a, b) { return Math.round((parse(b) - parse(a)) / 86400000); }
+
+// ================= 유틸 =================
+function seeded(seedStr) { let h = 2166136261; for (const c of seedStr) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return () => { h += 0x6D2B79F5; let t = h; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+function shuffle(arr, rnd) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2200); }
+function pop(text) { const p = document.createElement('div'); p.className = 'xp-pop'; p.textContent = text; p.style.left = (35 + Math.random() * 30) + '%'; p.style.top = '45%'; document.body.appendChild(p); setTimeout(() => p.remove(), 1000); }
+const unmasteredWrong = () => Object.keys(S.wrong).filter(id => !S.wrong[id].mastered && Q[id]);
+function everAnswered(id) { return Object.values(S.ans).some(m => m[id]); }
+
+// ================= 문제 세트 구성 =================
+function buildSet(date) {
+  if (S.sets[date]) return S.sets[date];
+  const day = dayOf(date); if (!day) return [];
+  const rnd = seeded(date);
+  let ids;
+  if (day.type === 'review') {
+    ids = unmasteredWrong().sort((a, b) => S.wrong[b].count - S.wrong[a].count);
+    if (ids.length === 0) ids = shuffle(QUESTIONS.map(q => q.id), rnd).slice(0, 15); // 오답이 없으면 전범위 랜덤 점검
+  } else {
+    const fresh = QUESTIONS.filter(q => q.day === day.n).map(q => q.id);
+    const prev = QUESTIONS.filter(q => q.day < day.n).map(q => q.id);
+    const w = shuffle(prev.filter(id => S.wrong[id] && !S.wrong[id].mastered), rnd);
+    const unseen = shuffle(prev.filter(id => !everAnswered(id) && !w.includes(id)), rnd);
+    const rest = shuffle(prev.filter(id => !w.includes(id) && !unseen.includes(id)), rnd);
+    const review = [...w, ...unseen, ...rest].slice(0, REVIEW_PER_DAY);
+    ids = [...fresh, ...review];
+  }
+  S.sets[date] = ids; save();
+  return ids;
+}
+function setProgress(date) { const ids = S.sets[date] || []; const a = S.ans[date] || {}; const n = ids.filter(id => a[id]).length; return { n, total: ids.length, right: ids.filter(id => a[id]?.correct).length }; }
+
+// ================= 채점 =================
+function grade(q, val) {
+  if (q.type === 'mc') return val === q.answer;
+  if (q.type === 'ox') return val === q.answer;
+  const norm = s => String(s).trim().toLowerCase().replace(/\s+/g, '');
+  return q.answers.some(a => norm(a) === norm(val));
+}
+function answer(ctx, id, val) {
+  const q = Q[id]; if (!q) return;
+  S.ans[ctx] ??= {};
+  if (S.ans[ctx][id]) return;                       // 한 세트 안에서는 한 번만 채점
+  const ok = grade(q, val);
+  S.ans[ctx][id] = { v: val, correct: ok, at: Date.now() };
+  if (ok) {
+    S.xp += XP_RIGHT; pop('+' + XP_RIGHT + ' XP');
+    if (S.wrong[id] && !S.wrong[id].mastered) { S.wrong[id].mastered = true; S.wrong[id].masteredAt = today(); toast('✔ 오답노트에서 졸업!'); }
+  } else {
+    S.xp += XP_WRONG;
+    S.wrong[id] ??= { count: 0 };
+    S.wrong[id].count++; S.wrong[id].mastered = false; S.wrong[id].last = today();
+  }
+  save();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(ctx)) checkDone(ctx);
+  rerender();
+}
+function checkDone(date) {
+  const p = setProgress(date);
+  if (p.total > 0 && p.n === p.total && !S.done[date]) {
+    S.done[date] = true; S.xp += XP_DAY; save();
+    toast('🎉 오늘 미션 완료! +' + XP_DAY + ' XP');
+    if (date === today()) sendDone(date);
+  }
+}
+
+// ================= 푸시 연동 (ntfy) =================
+async function sendDone(date) {
+  try {
+    await fetch(`${NTFY}/${TOPIC_STATUS}`, { method: 'POST', body: `done ${date}` });
+    S.sent[date] = true; save(); rerender();
+  } catch (e) { toast('완료 신호 전송 실패 — 진도 탭에서 다시 보내세요'); }
+}
+async function testAlert() {
+  try {
+    await fetch(NTFY, { method: 'POST', body: JSON.stringify({ topic: TOPIC_ALERT, title: '🔔 테스트 알림', message: '알림이 잘 도착했어요! 매일 21시에 미완료 시 이렇게 알려드릴게요.', tags: ['bell'], click: location.href.split('#')[0] }) });
+    toast('테스트 알림을 보냈어요. 폰을 확인하세요!');
+  } catch (e) { toast('전송 실패: 네트워크를 확인하세요'); }
+}
+
+// ================= 렌더: 공통 =================
+function qCard(ctx, id, opts = {}) {
+  const q = Q[id]; if (!q) return '';
+  const a = (S.ans[ctx] || {})[id];
+  const typeLbl = { mc: '객관식', ox: 'OX', short: '주관식' }[q.type];
+  const dayLbl = DAYS.find(d => d.n === q.day);
+  let tags = `<span class="tag">${typeLbl}</span>`;
+  if (opts.review) tags += ` <span class="tag review">누적 복습 · ${dayLbl ? dayLbl.date.slice(5).replace('-', '/') : ''}</span>`;
+  if (S.wrong[id] && !S.wrong[id].mastered && !a) tags += ` <span class="tag wrongtag">오답 ${S.wrong[id].count}회</span>`;
+  const call = (v) => `answer('${ctx}','${id}',${v})`;
+  let body = '';
+  if (q.type === 'mc') {
+    body = '<div class="opts">' + q.options.map((o, i) => {
+      let cls = 'opt';
+      if (a) { if (i === q.answer) cls += ' correct'; else if (a.v === i) cls += ' picked-wrong'; }
+      return `<button class="${cls}" ${a ? 'disabled' : ''} onclick="${call(i)}">${String.fromCharCode(9312 + i)} ${esc(o)}</button>`;
+    }).join('') + '</div>';
+  } else if (q.type === 'ox') {
+    body = '<div class="opts ox">' + [[true, 'O'], [false, 'X']].map(([v, t]) => {
+      let cls = 'opt';
+      if (a) { if (v === q.answer) cls += ' correct'; else if (a.v === v) cls += ' picked-wrong'; }
+      return `<button class="${cls}" ${a ? 'disabled' : ''} onclick="${call(v)}">${t}</button>`;
+    }).join('') + '</div>';
+  } else {
+    const inId = `in-${ctx}-${id}`.replace(/[^a-zA-Z0-9-]/g, '_');
+    body = a
+      ? `<div class="short"><input value="${esc(a.v)}" disabled></div>`
+      : `<div class="short"><input id="${inId}" placeholder="정답 입력" autocomplete="off" onkeydown="if(event.key==='Enter')answer('${ctx}','${id}',this.value)"><button class="btn" onclick="answer('${ctx}','${id}',document.getElementById('${inId}').value)">제출</button></div>`;
+  }
+  let res = '';
+  if (a) {
+    const ansTxt = q.type === 'mc' ? q.options[q.answer] : q.type === 'ox' ? (q.answer ? 'O' : 'X') : q.answers[0];
+    res = `<div class="result ${a.correct ? 'r' : 'w'}">${a.correct ? '✅ 정답!' : '❌ 오답 — 정답: ' + esc(ansTxt)}</div>
+      <div class="explain">${q.explain}<span class="src">📎 출처: ${esc(q.src || '')}</span></div>`;
+  }
+  return `<div class="q ${a ? (a.correct ? 'right' : 'wrong') : ''}"><div class="q-head"><div>${tags}</div></div><div class="q-text">${esc(q.q)}</div>${body}${res}</div>`;
+}
+function conceptBlock(day, collapsed) {
+  return `<div class="concept ${collapsed ? 'collapsed' : ''}">
+    <div class="concept-toggle" onclick="this.parentElement.classList.toggle('collapsed')"><span>💡 핵심 개념 정리 <span class="muted" style="font-weight:400;font-size:11px">· ${esc(day.src)}</span></span><span class="muted">▾</span></div>
+    <div class="concept-body">${day.cores.map((c, i) => `<div class="core"><div class="core-head"><span class="core-num">${i + 1}</span>${c.t}</div><ul>${c.pts.map(p => `<li>${p}</li>`).join('')}</ul></div>`).join('')}</div>
+  </div>`;
+}
+
+// ================= 렌더: 오늘 =================
+function renderToday() {
+  const el = document.getElementById('page-today');
+  const t = today(), d = parse(t), day = dayOf(t);
+  let h = `<div class="muted" style="font-size:13px;margin-bottom:6px">${d.getMonth() + 1}월 ${d.getDate()}일 ${WD[d.getDay()]}요일</div>`;
+  if (t < DAYS[0].date) {
+    el.innerHTML = h + `<div class="banner info">학습은 ${DAYS[0].date}에 시작합니다. 일정 탭에서 미리 볼 수 있어요.</div>`; return;
+  }
+  if (!day) {
+    const wrongN = unmasteredWrong().length;
+    el.innerHTML = h + `<div class="banner ok"><div class="icon">📝</div><h3>${t === EXAM_DATE ? '오늘은 시험날! 화이팅!' : '학습 일정이 끝났어요'}</h3><p class="muted">남은 오답 ${wrongN}개 · 오답노트 탭에서 마지막으로 훑어보세요.</p></div>`; return;
+  }
+  const ids = buildSet(t);
+  const p = setProgress(t);
+  const isReview = day.type === 'review';
+  const hr = new Date().getHours();
+  if (!S.done[t] && hr >= 21) h += `<div class="banner warn">⏰ 밤 9시가 지났어요! 아직 오늘 미션이 남아 있습니다 (${p.n}/${p.total}).</div>`;
+  if (S.done[t]) h += `<div class="banner ok"><div class="icon">🌟</div><h3>오늘 미션 완료!</h3><p class="muted">정답 ${p.right}/${p.total} · ${S.sent[t] ? '완료 신호 전송됨 ✓ (21시 알림 없음)' : '완료 신호 전송 중…'}</p></div>`;
+  h += `<div class="day-chip">Day ${day.n} · ${esc(day.src)}${isReview ? ' · 오답노트' : ''}</div><div class="day-title">${esc(day.title)}</div>`;
+  h += `<div class="progress-line"><span>진행 ${p.n}/${p.total}</span><div class="bar"><div style="width:${p.total ? p.n / p.total * 100 : 0}%"></div></div><span>정답 ${p.right}</span></div>`;
+  h += conceptBlock(day, S.done[t]);
+  if (isReview) {
+    const wasRandom = ids.every(id => !S.wrong[id]);
+    h += `<div class="section-title">📕 ${wasRandom ? '오답이 없어 전 범위 랜덤 점검' : '오답 다시 풀기'} <span class="sub">· ${ids.length}문제</span></div>`;
+    h += ids.map(id => qCard(t, id)).join('');
+  } else {
+    const fresh = ids.filter(id => Q[id]?.day === day.n), rev = ids.filter(id => Q[id]?.day !== day.n);
+    h += `<div class="section-title">✏️ 오늘의 새 문제 <span class="sub">· ${fresh.length}문제</span></div>` + fresh.map(id => qCard(t, id)).join('');
+    if (rev.length) h += `<div class="section-title">🔁 누적 복습 <span class="sub">· 지난 범위 ${rev.length}문제 (오답 우선)</span></div>` + rev.map(id => qCard(t, id, { review: true })).join('');
+  }
+  el.innerHTML = h;
+}
+
+// ================= 렌더: 일정 =================
+function renderSched() {
+  const el = document.getElementById('page-sched'), t = today();
+  let h = `<div class="muted" style="font-size:13px;margin-bottom:12px">11/3 ~ 11/13 매일 새 범위 + 누적 복습 · 11/14~15 오답노트 · 11/16 시험</div>`;
+  DAYS.forEach(day => {
+    const d = parse(day.date), p = S.sets[day.date] ? setProgress(day.date) : null;
+    const st = S.done[day.date] ? '✅' : p && p.n ? '🔄' : day.date < t ? '⚠️' : day.date === t ? '👈' : '🔒';
+    const newN = QUESTIONS.filter(q => q.day === day.n).length;
+    h += `<div class="sched-item ${day.date === t ? 'today' : ''}" onclick="openDay(${day.n})">
+      <div class="sched-date"><div class="d">${d.getMonth() + 1}/${d.getDate()}</div><div class="w">${WD[d.getDay()]}</div></div>
+      <div class="sched-body"><div class="t">${esc(day.title)}</div><div class="s">${esc(day.src)} · ${day.type === 'review' ? '오답 모아 풀기' : `새 문제 ${newN}개 + 복습 ${day.n > 1 ? REVIEW_PER_DAY : 0}개`}${p ? ` · ${p.n}/${p.total}` : ''}</div></div>
+      <div class="sched-status">${st}</div></div>`;
+  });
+  const ed = parse(EXAM_DATE);
+  h += `<div class="sched-item" style="border-color:rgba(251,191,36,.5)"><div class="sched-date"><div class="d">${ed.getMonth() + 1}/${ed.getDate()}</div><div class="w">${WD[ed.getDay()]}</div></div><div class="sched-body"><div class="t">📝 시험</div><div class="s">범위: 1강~7-1강(Triton)</div></div><div class="sched-status">🎯</div></div>`;
+  el.innerHTML = h;
+}
+function openDay(n) {
+  const day = DAYS.find(d => d.n === n), t = today();
+  if (day.date === t) { showPage('today'); return; }
+  const ctx = 'practice-' + n;
+  let h = conceptBlock(day, false);
+  if (day.type === 'review') {
+    h += `<div class="banner info" style="margin-top:12px">${day.date < t ? '지난 오답노트 날이에요.' : '이 날에는 그때까지 틀린 문제가 모여 나옵니다.'} 오답노트 탭에서 언제든 다시 풀 수 있어요.</div>`;
+  } else {
+    const ids = QUESTIONS.filter(q => q.day === n).map(q => q.id);
+    h += `<div class="section-title">✏️ 이 날의 문제 <span class="sub">· ${day.date > t ? '미리 풀기' : '다시/밀린 풀기'} (연습 모드)</span>
+      <button class="btn ghost small" onclick="resetPractice('${ctx}',${n})">🔄 초기화</button></div>`;
+    h += ids.map(id => qCard(ctx, id)).join('');
+  }
+  openModal(`Day ${n} · ${day.date.slice(5).replace('-', '/')}`, h, () => openDay(n));
+}
+function resetPractice(ctx, n) { delete S.ans[ctx]; save(); openDay(n); }
+
+// ================= 렌더: 오답노트 =================
+function renderWrong() {
+  const el = document.getElementById('page-wrong');
+  const ids = unmasteredWrong().sort((a, b) => S.wrong[b].count - S.wrong[a].count);
+  const mastered = Object.keys(S.wrong).filter(id => S.wrong[id].mastered && Q[id]);
+  let h = `<div class="banner info">틀린 문제가 자동으로 모입니다. 다시 맞히면 ✔ 졸업. 11/14·15에는 남은 오답만 집중해서 풉니다.</div>`;
+  if (!ids.length) h += `<div class="banner ok"><div class="icon">🏅</div><h3>남은 오답이 없어요!</h3><p class="muted">졸업한 문제 ${mastered.length}개</p></div>`;
+  else {
+    h += `<div class="section-title">📕 남은 오답 <span class="sub">· ${ids.length}문제</span> <button class="btn ghost small" onclick="resetWrongCtx()">🔄 다시 풀기 판 새로고침</button></div>`;
+    h += ids.map(id => qCard('wrongnote', id)).join('');
+  }
+  if (mastered.length) h += `<div class="section-title">✔ 졸업한 문제 <span class="sub">· ${mastered.length}개</span></div><div class="card muted" style="font-size:12.5px;line-height:1.8">${mastered.map(id => '· ' + esc(Q[id].q.split('\n')[0].slice(0, 46)) + '…').join('<br>')}</div>`;
+  el.innerHTML = h;
+}
+function resetWrongCtx() { delete S.ans['wrongnote']; save(); renderWrong(); }
+
+// ================= 렌더: 진도 =================
+function allAttempts() { const out = {}; Object.values(S.ans).forEach(m => Object.entries(m).forEach(([id, a]) => { (out[id] ??= []).push(a.correct); })); return out; }
+function renderStats() {
+  const el = document.getElementById('page-stats');
+  const at = allAttempts(); let n = 0, r = 0; Object.values(at).forEach(arr => { n += arr.length; r += arr.filter(Boolean).length; });
+  const seen = Object.keys(at).length;
+  const doneN = DAYS.filter(d => S.done[d.date]).length;
+  let h = `<div class="grid2">
+    <div class="card"><div class="stat-big" style="color:#a5b4fc">${S.xp}</div><div class="stat-lbl">총 XP</div></div>
+    <div class="card"><div class="stat-big" style="color:var(--success)">${n ? Math.round(r / n * 100) : 0}%</div><div class="stat-lbl">전체 정답률 (${r}/${n})</div></div>
+    <div class="card"><div class="stat-big" style="color:var(--warning)">${doneN}/${DAYS.length}</div><div class="stat-lbl">완료한 날</div></div>
+    <div class="card"><div class="stat-big">${seen}/${QUESTIONS.length}</div><div class="stat-lbl">풀어본 문제</div></div>
+  </div>`;
+  h += `<div class="section-title">📚 범위별 정답률 <span class="sub">· 낮은 곳이 시험 전 보강 포인트</span></div><div class="card">`;
+  DAYS.filter(d => d.type !== 'review').forEach(d => {
+    let dn = 0, dr = 0; QUESTIONS.filter(q => q.day === d.n).forEach(q => { (at[q.id] || []).forEach(c => { dn++; if (c) dr++; }); });
+    const pct = dn ? Math.round(dr / dn * 100) : 0;
+    h += `<div class="row"><span class="lbl">Day${d.n} ${esc(d.src)}</span><div class="bar"><div style="width:${pct}%"></div></div><span class="pct">${dn ? pct + '%' : '-'}</span></div>`;
+  });
+  h += `</div>`;
+  h += `<div class="section-title">🔔 21시 미완료 푸시 알림 설정</div><div class="card" style="font-size:12.8px;line-height:1.7">
+    매일 <b>밤 9시</b>까지 오늘 미션을 끝내지 않으면 폰으로 푸시가 옵니다. (11/3~11/15)
+    <ol class="steps" style="margin-top:8px">
+      <li>폰에 무료 앱 <b>ntfy</b> 설치 (App Store / Google Play)</li>
+      <li>앱에서 <b>+ (Subscribe to topic)</b> → 아래 토픽 이름 입력 → Subscribe</li>
+      <li>아래 <b>테스트 알림</b>으로 도착하는지 확인</li>
+    </ol>
+    <div class="topic-box" onclick="navigator.clipboard?.writeText(TOPIC_ALERT);toast('토픽 이름 복사됨')">${TOPIC_ALERT}</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn small" onclick="testAlert()">🔔 테스트 알림 보내기</button>
+      <button class="btn ghost small" onclick="sendDone(today());toast('오늘 완료 신호를 다시 보냈어요')" ${S.done[today()] ? '' : 'disabled style="opacity:.5"'}>✓ 오늘 완료 신호 재전송</button>
+    </div>
+    <p class="muted" style="margin-top:8px;font-size:11.5px">미션을 다 풀면 앱이 자동으로 '완료' 신호를 보내고, 21시 점검 때 완료 신호가 없으면 알림이 갑니다. 진도 데이터는 이 브라우저에 저장되니 주로 쓰는 기기 하나로 풀어주세요.</p>
+  </div>`;
+  h += `<div class="section-title">⚙️ 데이터</div><div class="card" style="display:flex;gap:8px;flex-wrap:wrap">
+    <button class="btn ghost small" onclick="exportData()">⬇️ 진도 백업 복사</button>
+    <button class="btn ghost small" onclick="importData()">⬆️ 백업 붙여넣기</button>
+  </div>`;
+  el.innerHTML = h;
+}
+function exportData() { navigator.clipboard?.writeText(JSON.stringify(S)); toast('진도 데이터가 클립보드에 복사됐어요'); }
+function importData() { const s = prompt('백업 데이터를 붙여넣으세요'); if (!s) return; try { S = JSON.parse(s); save(); rerender(); toast('복원 완료'); } catch (e) { toast('형식이 올바르지 않아요'); } }
+
+// ================= 헤더 =================
+function renderHeader() {
+  const t = today(), dd = daysBetween(t, EXAM_DATE);
+  document.getElementById('ddayBig').textContent = dd > 0 ? 'D-' + dd : dd === 0 ? 'D-DAY' : '시험 종료';
+  let streak = 0; const c = parse(t);
+  if (!S.done[t]) c.setDate(c.getDate() - 1);
+  while (S.done[fmt(c)]) { streak++; c.setDate(c.getDate() - 1); }
+  document.getElementById('sStreak').textContent = streak;
+  document.getElementById('sXP').textContent = S.xp;
+  const at = allAttempts(); let n = 0, r = 0; Object.values(at).forEach(a => { n += a.length; r += a.filter(Boolean).length; });
+  document.getElementById('sAcc').textContent = n ? Math.round(r / n * 100) + '%' : '-';
+  const w = unmasteredWrong().length;
+  document.getElementById('sWrong').textContent = w;
+  const b = document.getElementById('wrongBadge'); b.textContent = w; b.style.display = w ? 'inline-block' : 'none';
+  const lv = Math.floor(S.xp / XP_PER_LEVEL) + 1, inLv = S.xp % XP_PER_LEVEL;
+  document.getElementById('xpFill').style.width = (inLv / XP_PER_LEVEL * 100) + '%';
+  document.getElementById('xpLv').textContent = `Lv.${lv} · ${inLv} XP`;
+  document.getElementById('xpNext').textContent = `다음 레벨까지 ${XP_PER_LEVEL - inLv} XP`;
+}
+
+// ================= 네비 · 모달 =================
+let current = 'today', modalRefresh = null;
+function showPage(p) {
+  current = p;
+  document.querySelectorAll('.page').forEach(e => e.classList.toggle('active', e.id === 'page-' + p));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('active', b.dataset.page === p));
+  rerender(); window.scrollTo(0, 0);
+}
+document.querySelectorAll('.nav button').forEach(b => b.onclick = () => showPage(b.dataset.page));
+function openModal(title, html, refresh) { document.getElementById('modalTitle').textContent = title; document.getElementById('modalBody').innerHTML = html; modalRefresh = refresh; document.getElementById('modal').classList.add('open'); }
+function closeModal() { document.getElementById('modal').classList.remove('open'); modalRefresh = null; rerender(); }
+function rerender() {
+  renderHeader();
+  if (modalRefresh && document.getElementById('modal').classList.contains('open')) { const y = document.getElementById('modal').scrollTop; modalRefresh(); document.getElementById('modal').scrollTop = y; return; }
+  const y = window.scrollY;
+  ({ today: renderToday, sched: renderSched, wrong: renderWrong, stats: renderStats })[current]();
+  window.scrollTo(0, y);
+}
+
+// 완료했는데 신호 전송이 실패했던 경우 재시도
+if (S.done[today()] && !S.sent[today()]) sendDone(today());
+rerender();
+// 자정·21시를 넘기면 화면 갱신
+setInterval(() => { if (document.visibilityState === 'visible') renderHeader(); }, 60000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') rerender(); });
+</script>
+</body>
+</html>
