@@ -167,6 +167,7 @@
 
 <script src="data-1.js"></script>
 <script src="data-2.js"></script>
+<script src="data-fix.js"></script>
 <script>
 // ================= 설정 =================
 const EXAM_DATE = '2026-11-16';
@@ -176,6 +177,14 @@ const TOPIC_ALERT = 'sysopt-7d0aedf5-alert';     // 폰이 구독하는 알림 �
 const REVIEW_PER_DAY = 6;                        // 학습일마다 섞어 넣는 누적 복습 문제 수
 const XP_RIGHT = 10, XP_WRONG = 2, XP_DAY = 30, XP_PER_LEVEL = 150;
 const Q = {}; QUESTIONS.forEach(q => Q[q.id] = q);
+// 객관식 보기 표시 순서: 정답 위치를 ①~④에 골고루 순환 배정 (저장되는 답은 원래 인덱스 그대로)
+const ORDER = {};
+QUESTIONS.filter(q => q.type === 'mc').forEach((q, k) => {
+  const n = q.options.length, rnd = seeded(q.id);
+  const others = shuffle([...Array(n).keys()].filter(i => i !== q.answer), rnd);
+  others.splice((k * 3 + 1) % n, 0, q.answer);
+  ORDER[q.id] = others;
+});
 
 // ================= 상태 =================
 const KEY = 'sysopt-quest-v1';
@@ -285,10 +294,10 @@ function qCard(ctx, id, opts = {}) {
   const call = (v) => `answer('${ctx}','${id}',${v})`;
   let body = '';
   if (q.type === 'mc') {
-    body = '<div class="opts">' + q.options.map((o, i) => {
+    body = '<div class="opts">' + (ORDER[id] || q.options.map((_, i) => i)).map((i, pos) => {
       let cls = 'opt';
       if (a) { if (i === q.answer) cls += ' correct'; else if (a.v === i) cls += ' picked-wrong'; }
-      return `<button class="${cls}" ${a ? 'disabled' : ''} onclick="${call(i)}">${String.fromCharCode(9312 + i)} ${esc(o)}</button>`;
+      return `<button class="${cls}" ${a ? 'disabled' : ''} onclick="${call(i)}">${String.fromCharCode(9312 + pos)} ${esc(q.options[i])}</button>`;
     }).join('') + '</div>';
   } else if (q.type === 'ox') {
     body = '<div class="opts ox">' + [[true, 'O'], [false, 'X']].map(([v, t]) => {
